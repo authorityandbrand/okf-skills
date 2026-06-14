@@ -4,6 +4,15 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.2.0] — 2026-06-14
+
+### Added
+- `visualize` skill bundling `okf_visualize.py`: renders a bundle to a single
+  self-contained `viz.html` — force/concentric/breadth-first/circle/grid layouts,
+  per-type filter + clickable legend, search, neighbour highlight, and a wiki-style
+  detail panel with rendered markdown plus "Links to" / "Cited by" backlinks.
+  Referenced via `${CLAUDE_SKILL_DIR}` (works as plugin or standalone skills.sh skill).
+
 ## [0.1.0] — 2026-06-14
 
 ### Added

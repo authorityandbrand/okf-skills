@@ -36,7 +36,9 @@ plugin makes keeping that home accurate a normal part of how Claude works.
 |-----------|--------------|
 | `/okf:okf` skill | Produce / maintain / consume bundles, applying the spec and templates. Auto-triggers when a repo has an OKF bundle. |
 | `/okf:validate` skill | Deterministic §9 conformance check (not an eyeball pass). |
+| `/okf:visualize` skill | Render a bundle to a self-contained interactive HTML graph (`viz.html`). |
 | `skills/validate/scripts/okf_validate.py` | Standalone, zero-config validator (`uv run`, PyYAML via PEP 723). |
+| `skills/visualize/scripts/okf_visualize.py` | Standalone bundle→`viz.html` renderer (Cytoscape + marked via CDN). |
 | `skills/okf/reference/SPEC.md` | The OKF v0.1 spec, vendored verbatim — the source of truth. |
 | `templates/CLAUDE-okf.md` | Snippet that turns on automatic consume/maintain in your project. |
 | `examples/sample-bundle/` | A tiny conformant bundle (code + docs + decisions). |
@@ -85,6 +87,14 @@ Requires [`uv`](https://docs.astral.sh/uv/) for the validator (or `python3` + `p
 uv run skills/validate/scripts/okf_validate.py .okf --strict
 ```
 
+**Visualize** the knowledge graph (self-contained `viz.html`, opens in any browser):
+
+```shell
+/okf:visualize .okf
+# or directly:
+uv run skills/visualize/scripts/okf_visualize.py .okf -o viz.html
+```
+
 **Turn on automatic upkeep (soft mode).** This plugin ships *no hooks* by design.
 To have Claude consult `.okf/` before tasks and write knowledge back after
 changes, paste [`templates/CLAUDE-okf.md`](templates/CLAUDE-okf.md) into your
@@ -129,6 +139,7 @@ okf-skills/
 ├── .claude-plugin/{plugin.json, marketplace.json}
 ├── skills/okf/{SKILL.md, reference/SPEC.md, templates/}
 ├── skills/validate/{SKILL.md, scripts/okf_validate.py}
+├── skills/visualize/{SKILL.md, scripts/okf_visualize.py}
 ├── examples/sample-bundle/
 ├── templates/CLAUDE-okf.md
 └── .github/workflows/ci.yml
