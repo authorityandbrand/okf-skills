@@ -46,14 +46,14 @@ plugin makes keeping that home accurate a normal part of how Claude works.
 **As a Claude Code plugin** (one-plugin marketplace):
 
 ```shell
-/plugin marketplace add scaccogatto/okf
+/plugin marketplace add scaccogatto/okf-skills
 /plugin install okf@scaccogatto
 ```
 
 **As agent skills via [skills.sh](https://skills.sh)** (Claude Code, Cursor, Codex, and 20+ agents):
 
 ```shell
-npx skills add scaccogatto/okf            # installs the okf + validate skills
+npx skills add scaccogatto/okf-skills            # installs the okf + validate skills
 ```
 
 **Local development** (no marketplace):
@@ -125,7 +125,7 @@ timestamp: 2026-06-14T10:00:00Z
 ## Repository layout
 
 ```
-okf/
+okf-skills/
 ├── .claude-plugin/{plugin.json, marketplace.json}
 ├── skills/okf/{SKILL.md, reference/SPEC.md, templates/}
 ├── skills/validate/{SKILL.md, scripts/okf_validate.py}

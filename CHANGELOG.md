@@ -18,5 +18,5 @@ OKF spec version it supports.
   (upstream `ee67a5c`, Apache-2.0).
 - `templates/CLAUDE-okf.md`: adoption snippet enabling soft-mode consume/maintain.
 - `examples/sample-bundle/`: a conformant reference bundle.
-- One-plugin marketplace manifest for `/plugin marketplace add scaccogatto/okf`.
+- One-plugin marketplace manifest for `/plugin marketplace add scaccogatto/okf-skills`.
 - CI: validates the plugin manifest and the example bundle on every push.
