@@ -191,7 +191,7 @@ def render(bundle: Path, out: Path):
     nodes, edges = build(bundle)
     html = (HTML.replace("__NAME__", bundle.resolve().parent.name + "/" + bundle.name)
             .replace("__N__", str(len(nodes))).replace("__E__", str(len(edges)))
-            .replace("__NODES__", json.dumps(nodes)).replace("__EDGES__", json.dumps(edges)))
+            .replace("__NODES__", json.dumps(nodes, default=str)).replace("__EDGES__", json.dumps(edges, default=str)))
     out.write_text(html, encoding="utf-8")
     return len(nodes), len(edges)
 

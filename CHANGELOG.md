@@ -4,6 +4,15 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.2.1] — 2026-06-18
+
+### Fixed
+- `visualize`: `okf_visualize.py` no longer crashes with
+  `TypeError: Object of type date is not JSON serializable` on bundles whose
+  `timestamp:` (or any) frontmatter is an unquoted ISO 8601 value — PyYAML parses
+  these into `date`/`datetime` objects. `json.dumps` of the node/edge graph now
+  passes `default=str`, serializing them as strings.
+
 ## [0.2.0] — 2026-06-14
 
 ### Added
