@@ -4,6 +4,23 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.3.0] — 2026-06-28
+
+### Added
+- `visualize`: `--title` / `--link` flags — name the graph and show a clickable
+  back-link to the source repo in the header.
+- `visualize`: **deep-linkable concepts** — `viz.html#services/auth-api` loads with
+  that concept already selected; selecting a node updates the URL hash so any
+  concept is shareable by link.
+- Richer `examples/sample-bundle`: 8 cross-linked concepts spanning `Service`,
+  `Schema`, `Decision`, `Runbook`, and `Metric` — the bundle behind the live demo.
+- GitHub Pages **live demo** (`docs/`) rendering the sample bundle as an
+  interactive graph.
+
+### Changed
+- `visualize`: cap zoom and add label outlines so small or dense graphs stay
+  legible on first render instead of over-zooming into overlapping labels.
+
 ## [0.2.1] — 2026-06-18
 
 ### Fixed

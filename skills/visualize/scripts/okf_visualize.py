@@ -122,9 +122,10 @@ HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
  .body td,.body th{border:1px solid var(--line);padding:4px 8px} .body code{background:#1d2230;padding:1px 5px;border-radius:4px}
  .body pre{background:#1d2230;padding:10px;border-radius:8px;overflow:auto} .body img{max-width:100%}
  .empty{color:var(--mut)} a{color:var(--accent)}
+ .src{pointer-events:auto;color:var(--accent);margin-left:10px;text-decoration:none} .src:hover{text-decoration:underline}
 </style></head><body>
 <div id="app"><div id="cy"></div><div id="side"><p class="empty">Click a concept to inspect it.</p></div></div>
-<header><h1>__NAME__</h1><div class="sub">__N__ concepts · __E__ links · OKF v0.1</div></header>
+<header><h1>__NAME__</h1><div class="sub">__N__ concepts · __E__ links · OKF v0.1__LINK__</div></header>
 <div id="bar">
  <input id="search" placeholder="search concepts…">
  <select id="type"><option value="">all types</option></select>
@@ -144,11 +145,12 @@ EDGES.forEach(e=>{outL[e.source].push(e.target);inL[e.target].push(e.source);});
 const types=[...new Set(NODES.map(n=>n.type))].sort();
 const color=Object.fromEntries(types.map((t,i)=>[t,PALETTE[i%PALETTE.length]]));
 const off=new Set();
-const cy=cytoscape({container:document.getElementById('cy'),
+const cy=cytoscape({container:document.getElementById('cy'),minZoom:.2,maxZoom:1.6,wheelSensitivity:.2,
  elements:[...NODES.map(n=>({data:{...n,c:color[n.type]}})),...EDGES.map(e=>({data:e}))],
  style:[
   {selector:'node',style:{'background-color':'data(c)','label':'data(title)','color':'#e6e8ee',
    'font-size':10,'text-wrap':'wrap','text-max-width':120,'text-valign':'bottom','text-margin-y':4,
+   'text-outline-width':2,'text-outline-color':'#0e0f13','min-zoomed-font-size':6,
    'width':'data(sz)','height':'data(sz)'}},
   {selector:'edge',style:{'width':1.2,'line-color':'#3a4150','target-arrow-color':'#3a4150',
    'target-arrow-shape':'triangle','arrow-scale':.8,'curve-style':'bezier','opacity':.7}},
@@ -168,7 +170,8 @@ function show(id){const n=byId[id];if(!n)return;const c=color[n.type];
  side.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));}
 function select(id){const ele=cy.getElementById(id);if(!ele.length)return;show(id);
  cy.elements().removeClass('hl').addClass('dim');const nb=ele.closedNeighborhood();nb.removeClass('dim');ele.addClass('hl');
- cy.animate({center:{eles:ele},duration:250});}
+ cy.animate({center:{eles:ele},duration:250});
+ try{if(decodeURIComponent((location.hash||'').slice(1))!==id)location.hash=encodeURIComponent(id);}catch(e){}}
 cy.on('tap','node',e=>select(e.target.id()));
 cy.on('tap',e=>{if(e.target===cy)cy.elements().removeClass('dim hl');});
 function applyFilter(){const q=document.getElementById('search').value.toLowerCase();const ty=document.getElementById('type').value;
@@ -184,12 +187,16 @@ document.getElementById('layout').onchange=e=>{cy.layout({name:e.target.value,an
 document.getElementById('legend').innerHTML=types.map(t=>`<span class="chip" data-t="${esc(t)}"><span class="dot" style="background:${color[t]}"></span>${esc(t)} (${NODES.filter(n=>n.type===t).length})</span>`).join('');
 document.querySelectorAll('#legend .chip').forEach(ch=>ch.onclick=()=>{const t=ch.getAttribute('data-t');
  if(off.has(t)){off.delete(t);ch.classList.remove('off');}else{off.add(t);ch.classList.add('off');}applyFilter();});
+function fromHash(){try{const h=decodeURIComponent((location.hash||'').slice(1));if(h&&byId[h])select(h);}catch(e){}}
+addEventListener('hashchange',fromHash);fromHash();
 </script></body></html>"""
 
 
-def render(bundle: Path, out: Path):
+def render(bundle: Path, out: Path, title: str | None = None, link: str | None = None):
     nodes, edges = build(bundle)
-    html = (HTML.replace("__NAME__", bundle.resolve().parent.name + "/" + bundle.name)
+    name = title or f"{bundle.resolve().parent.name}/{bundle.name}"
+    src = f' <a class="src" href="{link}" target="_blank" rel="noopener">source ↗</a>' if link else ""
+    html = (HTML.replace("__NAME__", name).replace("__LINK__", src)
             .replace("__N__", str(len(nodes))).replace("__E__", str(len(edges)))
             .replace("__NODES__", json.dumps(nodes, default=str)).replace("__EDGES__", json.dumps(edges, default=str)))
     out.write_text(html, encoding="utf-8")
@@ -200,12 +207,14 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Render an OKF bundle as a self-contained HTML graph.")
     ap.add_argument("bundle", type=Path)
     ap.add_argument("-o", "--out", type=Path, default=None)
+    ap.add_argument("-t", "--title", default=None, help="graph title (default: parent/bundle dir name)")
+    ap.add_argument("-l", "--link", default=None, help="optional source URL shown in the header")
     args = ap.parse_args()
     if not args.bundle.is_dir():
         print(f"error: {args.bundle} is not a directory", file=sys.stderr)
         return 2
     out = args.out or (args.bundle / "viz.html")
-    n, e = render(args.bundle, out)
+    n, e = render(args.bundle, out, title=args.title, link=args.link)
     print(f"rendered {n} concepts, {e} links -> {out}")
     return 0
 

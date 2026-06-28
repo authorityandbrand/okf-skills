@@ -1,5 +1,15 @@
 # Update Log
 
+## 2026-06-18
+* **Operations**: Added the [Payment failures runbook](/runbooks/payment-failures.md)
+  and the [Checkout conversion](/metrics/checkout-conversion.md) metric.
+* **Schema**: Documented the [Orders database](/datasets/orders-db.md).
+
+## 2026-06-16
+* **Services**: Added [Orders API](/services/orders-api.md) and
+  [Payments API](/services/payments-api.md); recorded the
+  [event-driven decision](/decisions/event-driven.md).
+
 ## 2026-06-14
-* **Creation**: Established the bundle with the [Auth API](/services/auth-api.md) service concept.
-* **Creation**: Recorded the [OKF adoption decision](/decisions/use-okf.md).
+* **Creation**: Established the bundle with the [Auth API](/services/auth-api.md)
+  service concept and the [OKF adoption decision](/decisions/use-okf.md).
