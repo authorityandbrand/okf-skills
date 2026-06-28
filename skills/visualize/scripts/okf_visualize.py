@@ -156,7 +156,7 @@ const cy=cytoscape({container:document.getElementById('cy'),minZoom:.2,maxZoom:1
    'target-arrow-shape':'triangle','arrow-scale':.8,'curve-style':'bezier','opacity':.7}},
   {selector:'.dim',style:{'opacity':.10}},{selector:'.hl',style:{'border-width':3,'border-color':'#fff'}}
  ],
- layout:{name:'cose',animate:false,nodeRepulsion:9000,idealEdgeLength:90,padding:40}});
+ layout:{name:'__LAYOUT__',animate:false,nodeRepulsion:9000,idealEdgeLength:90,padding:40}});
 const side=document.getElementById('side');
 const esc=s=>(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function relList(title,arr){if(!arr.length)return'';
@@ -187,16 +187,21 @@ document.getElementById('layout').onchange=e=>{cy.layout({name:e.target.value,an
 document.getElementById('legend').innerHTML=types.map(t=>`<span class="chip" data-t="${esc(t)}"><span class="dot" style="background:${color[t]}"></span>${esc(t)} (${NODES.filter(n=>n.type===t).length})</span>`).join('');
 document.querySelectorAll('#legend .chip').forEach(ch=>ch.onclick=()=>{const t=ch.getAttribute('data-t');
  if(off.has(t)){off.delete(t);ch.classList.remove('off');}else{off.add(t);ch.classList.add('off');}applyFilter();});
+document.getElementById('layout').value='__LAYOUT__';
+const Q=new URLSearchParams(location.search),QL=Q.get('layout'),QS=Q.get('select');
+if(QL&&[...document.querySelectorAll('#layout option')].some(o=>o.value===QL)){document.getElementById('layout').value=QL;cy.layout({name:QL,animate:false,padding:40,nodeRepulsion:9000,idealEdgeLength:90}).run();}
 function fromHash(){try{const h=decodeURIComponent((location.hash||'').slice(1));if(h&&byId[h])select(h);}catch(e){}}
-addEventListener('hashchange',fromHash);fromHash();
+addEventListener('hashchange',fromHash);
+if(QS&&byId[QS])select(QS);else fromHash();
 </script></body></html>"""
 
 
-def render(bundle: Path, out: Path, title: str | None = None, link: str | None = None):
+def render(bundle: Path, out: Path, title: str | None = None, link: str | None = None,
+           layout: str = "cose"):
     nodes, edges = build(bundle)
     name = title or f"{bundle.resolve().parent.name}/{bundle.name}"
     src = f' <a class="src" href="{link}" target="_blank" rel="noopener">source ↗</a>' if link else ""
-    html = (HTML.replace("__NAME__", name).replace("__LINK__", src)
+    html = (HTML.replace("__NAME__", name).replace("__LINK__", src).replace("__LAYOUT__", layout)
             .replace("__N__", str(len(nodes))).replace("__E__", str(len(edges)))
             .replace("__NODES__", json.dumps(nodes, default=str)).replace("__EDGES__", json.dumps(edges, default=str)))
     out.write_text(html, encoding="utf-8")
@@ -209,12 +214,15 @@ def main() -> int:
     ap.add_argument("-o", "--out", type=Path, default=None)
     ap.add_argument("-t", "--title", default=None, help="graph title (default: parent/bundle dir name)")
     ap.add_argument("-l", "--link", default=None, help="optional source URL shown in the header")
+    ap.add_argument("--layout", default="cose",
+                    choices=["cose", "concentric", "breadthfirst", "circle", "grid"],
+                    help="initial graph layout (default: cose)")
     args = ap.parse_args()
     if not args.bundle.is_dir():
         print(f"error: {args.bundle} is not a directory", file=sys.stderr)
         return 2
     out = args.out or (args.bundle / "viz.html")
-    n, e = render(args.bundle, out, title=args.title, link=args.link)
+    n, e = render(args.bundle, out, title=args.title, link=args.link, layout=args.layout)
     print(f"rendered {n} concepts, {e} links -> {out}")
     return 0
 

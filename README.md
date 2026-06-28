@@ -13,7 +13,7 @@ knowledge bundles — markdown your team and your agents both read.**
 
 ### ▶ [**Open the live demo**](https://scaccogatto.github.io/okf-skills/) — a real OKF bundle as an interactive graph
 
-[![okf interactive graph — concepts as nodes, links as edges, wiki-style detail panel](docs/assets/hero.png)](https://scaccogatto.github.io/okf-skills/)
+[![okf — explore an OKF bundle as an interactive graph](docs/assets/demo.gif)](https://scaccogatto.github.io/okf-skills/)
 
 *Click any node → rendered markdown, typed metadata, and "Links to / Cited by" backlinks. No backend, nothing leaves the page.*
 

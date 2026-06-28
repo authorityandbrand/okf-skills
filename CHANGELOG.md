@@ -4,6 +4,17 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.3.1] — 2026-06-28
+
+### Added
+- `visualize`: `--layout` flag and `?layout=` / `?select=` URL params — set the
+  initial layout and pre-select a concept, so a specific view is shareable by link
+  (also powers the animated README demo).
+
+### Changed
+- Default the live demo to the `breadthfirst` layout and use it for the README
+  hero (now an animated GIF) — the force layout was too crowded for a small bundle.
+
 ## [0.3.0] — 2026-06-28
 
 ### Added
