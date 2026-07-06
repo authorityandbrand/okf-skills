@@ -97,8 +97,9 @@ HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 __OGIMAGE__
-<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js" integrity="sha384-IWROdLKRsN1UuJywMlWl7/blXQ8GEooN2n7dzTxfEPd7ybYIKCUJ2Ol/1Gpf3YV4" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@14.1.4/marked.min.js" integrity="sha384-lqPzN0kmFw9t2syAMwVPM4VbAyqsz/lPyYWbb2Xt6nSPM0WPNrpSWCUBgdcAdgnC" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.11/dist/purify.min.js" integrity="sha384-o44XUELLEnv/iSlA1NWxBweqbD4TSR0qgq2VzVsxtkHS989JJjGKSE9vkfo5MN4K" crossorigin="anonymous"></script>
 <style>
  :root{--bg:#0e0f13;--panel:#16181f;--line:#262a35;--fg:#e6e8ee;--mut:#9aa3b2;--accent:#8ab4ff}
  *{box-sizing:border-box} html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
@@ -171,7 +172,7 @@ function show(id){const n=byId[id];if(!n)return;const c=color[n.type];
  <h2>${esc(n.title)}</h2><div class="desc">${esc(n.description)||'<span class=empty>no description</span>'}</div>
  <div class="tags">${(n.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
  ${relList('Links to',outL[id])}${relList('Cited by',inL[id])}
- <div class="body">${n.body?marked.parse(n.body):'<span class=empty>empty body</span>'}</div>`;
+ <div class="body">${n.body?DOMPurify.sanitize(marked.parse(n.body)):'<span class=empty>empty body</span>'}</div>`;
  side.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));}
 function select(id){const ele=cy.getElementById(id);if(!ele.length)return;show(id);
  cy.elements().removeClass('hl').addClass('dim');const nb=ele.closedNeighborhood();nb.removeClass('dim');ele.addClass('hl');
@@ -201,12 +202,29 @@ if(QS&&byId[QS])select(QS);else fromHash();
 </script></body></html>"""
 
 
+def json_for_script(value) -> str:
+    """json.dumps() does not escape `</script` or `<!--` inside string values.
+    Embedding it directly into an inline <script> block lets any bundle
+    content containing those sequences (e.g. a concept whose body shows a
+    JS/HTML example) end the script element early — HTML's tokenizer looks
+    for them as literal bytes regardless of JS string context — and inject
+    arbitrary HTML/script into the rendered page. `\\/` and `\\u0021` are
+    both real JSON/JS escapes (unlike e.g. `\\s`, which would silently
+    collapse back to `s` and undo the fix): they decode to `/` and `!` at
+    parse time, so the encoded value is unchanged, but the dangerous literal
+    byte sequences never appear in the file the HTML parser scans."""
+    encoded = json.dumps(value, default=str)
+    encoded = re.sub(r"</(script)", r"<\\/\1", encoded, flags=re.IGNORECASE)
+    encoded = encoded.replace("<!--", "<\\u0021--")
+    return encoded
+
+
 def render(bundle: Path, out: Path, title: str | None = None, link: str | None = None,
            layout: str = "cose", og_image: str | None = None):
     nodes, edges = build(bundle)
     name = title or f"{bundle.resolve().parent.name}/{bundle.name}"
-    src = f' <a class="src" href="{link}" target="_blank" rel="noopener">source ↗</a>' if link else ""
     aesc = lambda s: (s or "").replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+    src = f' <a class="src" href="{aesc(link)}" target="_blank" rel="noopener">source ↗</a>' if link else ""
     og_title = aesc(f"OKF — {name}")
     og_desc = aesc(f"{len(nodes)} concepts · interactive Open Knowledge Format knowledge graph")
     og_img = (f'<meta property="og:image" content="{aesc(og_image)}">\n'
@@ -214,7 +232,7 @@ def render(bundle: Path, out: Path, title: str | None = None, link: str | None =
     html = (HTML.replace("__NAME__", name).replace("__LINK__", src).replace("__LAYOUT__", layout)
             .replace("__OGTITLE__", og_title).replace("__OGDESC__", og_desc).replace("__OGIMAGE__", og_img)
             .replace("__N__", str(len(nodes))).replace("__E__", str(len(edges)))
-            .replace("__NODES__", json.dumps(nodes, default=str)).replace("__EDGES__", json.dumps(edges, default=str)))
+            .replace("__NODES__", json_for_script(nodes)).replace("__EDGES__", json_for_script(edges)))
     out.write_text(html, encoding="utf-8")
     return len(nodes), len(edges)
 
