@@ -40,31 +40,45 @@ jobs:
           fi
           echo "ok: non-conformant bundle correctly rejected"
 
-      - name: Self-test — visualizer escapes </script> in concept bodies
+      - name: Self-test — script-breaking sequences in concept bodies are neutralized
         run: |
-          # Repro: a concept whose body shows an HTML/JS snippet containing a
-          # literal </script>. Without escaping, the browser's HTML tokenizer
-          # closes the inline <script> early, truncating the embedded NODES/EDGES
-          # data and breaking the whole page.
+          # A concept body may legitimately contain </script> (ends the inline
+          # data script early), <!--<script (arms the script-data double-escaped
+          # state, where even the template's real closing tag stops working), or
+          # the literal string __EDGES__ (a naive template substitution would
+          # splice the edges JSON into the middle of a node body). None of these
+          # may corrupt the generated page. Assertions are on outcomes, not on a
+          # specific escaping strategy.
           tmp="$(mktemp -d)"
           cat > "$tmp/snippet.md" <<'MD'
           ---
           type: Reference
-          title: Snippet with a script tag
+          title: Snippet with hostile-looking but benign content
           ---
           Example markup a doc might contain:
 
           ```html
           <script src="app.js"></script>REPRO_MARKER
+          <!--<script>DOUBLE_ESCAPE_MARKER
           ```
+
+          The template placeholder __EDGES__ SPLICE_MARKER must survive verbatim.
           MD
           uv run skills/visualize/scripts/okf_visualize.py "$tmp" -o "$tmp/viz.html"
+          grep -qF 'REPRO_MARKER' "$tmp/viz.html" || {
+            echo "concept body went missing from the output entirely" >&2
+            exit 1
+          }
           if grep -qF '</script>REPRO_MARKER' "$tmp/viz.html"; then
             echo "raw </script> from a concept body leaked into the inline data script" >&2
             exit 1
           fi
-          grep -qF '<\/script>REPRO_MARKER' "$tmp/viz.html" || {
-            echo "expected the embedded </script> to be escaped as <\\/script>" >&2
+          if grep -qF '<!--<script>DOUBLE_ESCAPE_MARKER' "$tmp/viz.html"; then
+            echo "raw <!--<script leaked (script-data double-escaped state hazard)" >&2
+            exit 1
+          fi
+          grep -qF '__EDGES__ SPLICE_MARKER' "$tmp/viz.html" || {
+            echo "literal __EDGES__ in a concept body was clobbered by template substitution" >&2
             exit 1
           }
-          echo "ok: </script> inside concept bodies is safely escaped"
+          echo "ok: script-breaking sequences in concept bodies are neutralized"

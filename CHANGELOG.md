@@ -4,6 +4,24 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.3.4] — 2026-07-06
+
+### Fixed
+- `visualize`: a concept body containing a literal `</script>` no longer truncates
+  the inline `NODES`/`EDGES` data script and kills the page — reported and first
+  fixed in [#2](https://github.com/scaccogatto/okf-skills/pull/2) by
+  [@delossantosleandro](https://github.com/delossantosleandro); the escaping is now
+  hardened to `<` → `\u003c`, which also neutralizes `<!--`/`<script` (the
+  script-data escaped states) in one stroke and keeps the payload valid JSON.
+- `visualize`: template placeholders are substituted in a single pass, so a concept
+  body that mentions `__EDGES__` (or any other marker) can no longer have the edges
+  JSON spliced into it.
+
+### Changed
+- CI self-test for the visualizer now asserts on outcomes (no raw `</script>`,
+  `<!--<script` or clobbered `__EDGES__` in the output) rather than on one specific
+  escaping strategy.
+
 ## [0.3.3] — 2026-06-28
 
 ### Added

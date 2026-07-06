@@ -32,21 +32,16 @@ LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 def json_for_script(obj) -> str:
     """JSON-encode ``obj`` for safe embedding inside an inline ``<script>``.
 
-    ``json.dumps`` produces valid JSON but does not escape ``</``. When a concept
-    body contains a literal ``</script>`` (common in docs that show HTML/JS
-    snippets), the browser's HTML tokenizer closes the inline ``<script>`` at
-    that point — truncating the embedded ``NODES``/``EDGES`` data and breaking the
-    whole page. Escaping ``</`` -> ``<\\/`` is valid JSON/JS yet invisible to the
-    tokenizer. ``<!--`` and the U+2028/U+2029 separators (illegal in JS string
-    literals) are neutralized for the same reason.
+    The HTML tokenizer knows nothing about JS string context: a literal
+    ``</script>`` in a concept body ends the inline script early (truncating the
+    embedded ``NODES``/``EDGES`` and breaking the whole page), and ``<!--`` can
+    shift it into the escaped script-data states where even the template's real
+    closing tag stops working. Escaping every ``<`` as ``\\u003c`` neutralizes
+    ``</script>``, ``<!--`` and ``<script`` in one stroke, and the result stays
+    valid JSON *and* JavaScript (``json.dumps`` keeps everything else ASCII via
+    the default ``ensure_ascii=True``).
     """
-    return (
-        json.dumps(obj, default=str)
-        .replace("</", "<\\/")
-        .replace("<!--", "<\\!--")
-        .replace(" ", "\\u2028")
-        .replace(" ", "\\u2029")
-    )
+    return json.dumps(obj, default=str).replace("<", "\\u003c")
 
 
 def split_frontmatter(text: str):
@@ -231,10 +226,14 @@ def render(bundle: Path, out: Path, title: str | None = None, link: str | None =
     og_desc = aesc(f"{len(nodes)} concepts · interactive Open Knowledge Format knowledge graph")
     og_img = (f'<meta property="og:image" content="{aesc(og_image)}">\n'
               f'<meta name="twitter:image" content="{aesc(og_image)}">') if og_image else ""
-    html = (HTML.replace("__NAME__", name).replace("__LINK__", src).replace("__LAYOUT__", layout)
-            .replace("__OGTITLE__", og_title).replace("__OGDESC__", og_desc).replace("__OGIMAGE__", og_img)
-            .replace("__N__", str(len(nodes))).replace("__E__", str(len(edges)))
-            .replace("__NODES__", json_for_script(nodes)).replace("__EDGES__", json_for_script(edges)))
+    subs = {"__NAME__": name, "__LINK__": src, "__LAYOUT__": layout,
+            "__OGTITLE__": og_title, "__OGDESC__": og_desc, "__OGIMAGE__": og_img,
+            "__N__": str(len(nodes)), "__E__": str(len(edges)),
+            "__NODES__": json_for_script(nodes), "__EDGES__": json_for_script(edges)}
+    # One pass, longest marker first: substituted content (e.g. a concept body that
+    # mentions "__EDGES__") must never itself be rescanned for other markers.
+    marker = re.compile("|".join(sorted(map(re.escape, subs), key=len, reverse=True)))
+    html = marker.sub(lambda m: subs[m.group(0)], HTML)
     out.write_text(html, encoding="utf-8")
     return len(nodes), len(edges)
 
