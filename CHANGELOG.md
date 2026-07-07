@@ -4,6 +4,14 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.3.4] — 2026-07-06
+
+### Fixed
+- `validate`: removed a stray `return body` in `check_concept()` — the function
+  is annotated `-> None` and its only caller never used the return value, so
+  this was dead code masked by a `type: ignore[return-value]` comment. No
+  behavior change.
+
 ## [0.3.3] — 2026-06-28
 
 ### Added
