@@ -4,6 +4,25 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.3.5] — 2026-07-06
+
+### Security
+- `visualize`: fixed two script-injection paths in generated `viz.html`, both
+  triggerable by ordinary bundle content (no attacker-controlled infrastructure
+  required): (1) `NODES`/`EDGES` were embedded via bare `json.dumps()`, which
+  doesn't escape `</script` or `<!--` — a concept body containing a literal
+  `</script>` could end the script element early and inject arbitrary HTML;
+  fixed via a `json_for_script()` helper using real JSON/JS escapes. (2) concept
+  bodies were rendered via `marked.parse()` straight into `.innerHTML` with no
+  sanitization, so a body containing `<img onerror=...>` or a raw `<script>`
+  tag executed as-is; now wrapped in `DOMPurify.sanitize()`.
+- `visualize`: `--link` is now HTML-escaped before interpolation into the
+  source-link `href` (was inconsistent with the sibling `--og-image` handling).
+- `visualize`: pinned the `marked` CDN script from a floating `@14` range to
+  the exact `@14.1.4` resolved version, and added `integrity` (SRI) +
+  `crossorigin` to all three CDN `<script>` tags (cytoscape, marked, the new
+  DOMPurify).
+
 ## [0.3.4] — 2026-07-06
 
 ### Fixed
