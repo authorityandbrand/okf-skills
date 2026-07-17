@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pyyaml>=6"]
+# ///
+"""Unit tests for okf_validate.py internals (issue #1).
+
+Run:  uv run tests/test_okf_validate.py
+"""
+from __future__ import annotations
+
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills" / "validate" / "scripts"))
+from okf_validate import (  # noqa: E402
+    Report, check_concept, check_index, check_links, check_log,
+    collect_link_targets, split_frontmatter, validate,
+)
+
+FULL_META = '---\ntype: Reference\ntitle: t\ndescription: d\ntags: [x]\ntimestamp: "2026-01-01T00:00:00Z"\n---\n\nbody\n'
+
+
+class TmpBundle(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.bundle = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+
+    def write(self, rel: str, text: str) -> Path:
+        p = self.bundle / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text, encoding="utf-8")
+        return p
+
+    def run_check(self, fn, rel, *args) -> Report:
+        report = Report()
+        fn(self.bundle / rel, rel, *args, report)
+        return report
+
+
+class TestSplitFrontmatter(unittest.TestCase):
+    def test_normal(self):
+        raw, body = split_frontmatter("---\ntype: A\n---\nbody\n")
+        self.assertEqual(raw, "type: A\n")
+        self.assertEqual(body, "body\n")
+
+    def test_no_frontmatter(self):
+        self.assertEqual(split_frontmatter("just text"), (None, "just text"))
+
+    def test_unterminated_is_absent(self):
+        raw, body = split_frontmatter("---\ntype: A\nno closing fence\n")
+        self.assertIsNone(raw)
+
+    def test_first_line_must_be_bare_dashes(self):
+        raw, _ = split_frontmatter("---not a fence\ntype: A\n---\n")
+        self.assertIsNone(raw)
+
+    def test_trailing_whitespace_on_fences_ok(self):
+        raw, body = split_frontmatter("---  \ntype: A\n---  \nbody")
+        self.assertEqual(raw, "type: A\n")
+        self.assertEqual(body, "body")
+
+    def test_empty_block(self):
+        raw, body = split_frontmatter("---\n---\nbody")
+        self.assertEqual(raw, "")
+        self.assertEqual(body, "body")
+
+
+class TestCheckConcept(TmpBundle):
+    def test_valid_full_metadata_is_clean(self):
+        self.write("c.md", FULL_META)
+        r = self.run_check(check_concept, "c.md")
+        self.assertEqual((r.errors, r.warnings, r.concepts), ([], [], 1))
+
+    def test_bom_prefixed_file_still_parses(self):
+        self.write("c.md", "﻿" + FULL_META)
+        r = self.run_check(check_concept, "c.md")
+        self.assertEqual(r.errors, [])
+
+    def test_missing_frontmatter_is_error(self):
+        self.write("c.md", "no frontmatter\n")
+        r = self.run_check(check_concept, "c.md")
+        self.assertIn("§9.1", r.errors[0])
+
+    def test_unterminated_frontmatter_is_error(self):
+        self.write("c.md", "---\ntype: A\nbody without closing fence\n")
+        r = self.run_check(check_concept, "c.md")
+        self.assertIn("§9.1", r.errors[0])
+
+    def test_invalid_yaml_is_error(self):
+        self.write("c.md", "---\ntype: [unclosed\n---\nbody\n")
+        r = self.run_check(check_concept, "c.md")
+        self.assertIn("not valid YAML", r.errors[0])
+
+    def test_non_mapping_frontmatter_is_error(self):
+        self.write("c.md", "---\n- a\n- b\n---\nbody\n")
+        r = self.run_check(check_concept, "c.md")
+        self.assertIn("YAML mapping", r.errors[0])
+
+    def test_missing_or_empty_type_is_error(self):
+        for meta in ("title: t", "type: ''", "type:   "):
+            self.write("c.md", f"---\n{meta}\n---\nbody\n")
+            r = self.run_check(check_concept, "c.md")
+            self.assertTrue(any("§9.2" in e for e in r.errors), meta)
+
+    def test_missing_recommended_fields_warn_only(self):
+        self.write("c.md", "---\ntype: A\n---\nbody\n")
+        r = self.run_check(check_concept, "c.md")
+        self.assertEqual(r.errors, [])
+        self.assertEqual(len(r.warnings), 4)  # title, description, tags, timestamp
+
+
+class TestCheckIndex(TmpBundle):
+    def test_root_okf_version_only_is_clean(self):
+        self.write("index.md", "---\nokf_version: '0.1'\n---\n# Index\n")
+        r = self.run_check(check_index, "index.md", True)
+        self.assertEqual((r.errors, r.warnings, r.indexes), ([], [], 1))
+
+    def test_root_extra_keys_warn(self):
+        self.write("index.md", "---\nokf_version: '0.1'\ntype: X\n---\n")
+        r = self.run_check(check_index, "index.md", True)
+        self.assertIn("§11", r.warnings[0])
+
+    def test_non_root_frontmatter_warns(self):
+        self.write("sub/index.md", "---\nokf_version: '0.1'\n---\n")
+        r = self.run_check(check_index, "sub/index.md", False)
+        self.assertIn("§6", r.warnings[0])
+
+    def test_no_frontmatter_is_clean(self):
+        self.write("sub/index.md", "# Plain index\n")
+        r = self.run_check(check_index, "sub/index.md", False)
+        self.assertEqual(r.warnings, [])
+
+
+class TestCheckLog(TmpBundle):
+    def test_iso_headings_are_clean(self):
+        self.write("log.md", "# Log\n\n## 2026-01-31\n* entry\n")
+        r = self.run_check(check_log, "log.md")
+        self.assertEqual((r.errors, r.warnings, r.logs), ([], [], 1))
+
+    def test_non_iso_heading_warns(self):
+        self.write("log.md", "## January 2026\n")
+        r = self.run_check(check_log, "log.md")
+        self.assertIn("not ISO 8601", r.warnings[0])
+
+    def test_frontmatter_warns(self):
+        self.write("log.md", "---\ntype: Log\n---\n## 2026-01-01\n")
+        r = self.run_check(check_log, "log.md")
+        self.assertIn("§7", r.warnings[0])
+
+
+class TestCollectLinkTargets(TmpBundle):
+    def test_links_collected_images_ignored(self):
+        p = self.write("c.md", 'See [a](a.md) and [b](b.md "title") but not ![img](pic.png).\n')
+        self.assertEqual(collect_link_targets(p), ["a.md", "b.md"])
+
+    def test_fenced_code_is_skipped(self):
+        p = self.write("c.md", "[real](a.md)\n```\n[fake](in-fence.md)\n```\n~~~\n[fake2](tilde.md)\n~~~\n[also](b.md)\n")
+        self.assertEqual(collect_link_targets(p), ["a.md", "b.md"])
+
+
+class TestCheckLinks(TmpBundle):
+    def links(self, *files: tuple[str, str]) -> Report:
+        paths = [self.write(rel, text) for rel, text in files]
+        report = Report()
+        check_links(self.bundle, paths, report)
+        return report
+
+    def test_resolution_matrix(self):
+        r = self.links(
+            ("a.md", "[ok](sub/b.md) [ok abs](/sub/b.md) [anchor](sub/b.md#x) "
+                     "[ext](https://example.com/x.md) [mail](mailto:x@y.z) "
+                     "[dir](sub/) [asset](img.png) [missing](nope.md)"),
+            ("sub/b.md", "[up ok](../a.md) [escape](../../etc/passwd.md)"),
+        )
+        warned = " ".join(r.warnings)
+        self.assertIn("nope.md", warned)
+        self.assertIn("passwd.md", warned)
+        self.assertEqual(len(r.warnings), 2, r.warnings)
+
+
+class TestValidateEndToEnd(TmpBundle):
+    def test_counts_and_conformance(self):
+        self.write("index.md", "---\nokf_version: '0.1'\n---\n# Root\n\n* [c](c.md)\n")
+        self.write("c.md", FULL_META)
+        self.write("log.md", "## 2026-01-01\n* created\n")
+        r = validate(self.bundle)
+        self.assertEqual((r.errors, r.warnings), ([], []))
+        self.assertEqual((r.concepts, r.indexes, r.logs), (1, 1, 1))
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

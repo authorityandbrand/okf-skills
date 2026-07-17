@@ -22,6 +22,8 @@ OKF spec version it supports.
   style-write pass over all nodes (~1.8 s per keystroke at 23k concepts).
 
 ### Added
+- Unit tests for `okf_validate.py` internals (frontmatter parsing, concept/index/log checks, link collection and resolution) — 25 cases, stdlib
+  `unittest`, wired into CI (#1).
 - `visualize`: warns above 5,000 concepts (slow page, unreadable hairball) and
   suggests rendering a subtree; new `--max-nodes N` refuses oversized bundles
   outright, for CI use.
