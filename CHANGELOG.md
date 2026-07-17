@@ -4,7 +4,7 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
-## [Unreleased]
+## [0.4.0] — 2026-07-17
 
 ### Added
 - `okf`: new `skills/okf/scripts/okf_init.py` scaffolds a conformant starter
