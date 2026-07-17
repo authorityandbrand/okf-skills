@@ -112,6 +112,11 @@ class TestCheckConcept(TmpBundle):
         self.assertEqual(r.errors, [])
         self.assertEqual(len(r.warnings), 4)  # title, description, tags, timestamp
 
+    def test_non_utf8_file_is_a_per_file_error_not_a_crash(self):
+        (self.bundle / "c.md").write_bytes(b"\xff\xfe invalid")
+        r = self.run_check(check_concept, "c.md")
+        self.assertTrue(any("c.md" in e for e in r.errors), r.errors)
+
 
 class TestCheckIndex(TmpBundle):
     def test_root_okf_version_only_is_clean(self):

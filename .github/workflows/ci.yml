@@ -86,6 +86,31 @@ jobs:
           }
           echo "ok: script-breaking sequences in concept bodies are neutralized"
 
+      - name: Self-test — concept body markdown is sanitized before innerHTML (XSS)
+        run: |
+          # A concept body is untrusted content — it must never execute script
+          # when rendered. Assertions are outcome-level: the DOMPurify hook is
+          # wired into the page and it wraps the marked.parse(...) call, not on
+          # a specific escaping strategy.
+          tmp="$(mktemp -d)"
+          cat > "$tmp/c.md" <<'MD'
+          ---
+          type: Reference
+          title: XSS probe
+          ---
+          <img src=x onerror="document.title='pwned'">
+          MD
+          uv run skills/visualize/scripts/okf_visualize.py "$tmp" -o "$tmp/viz.html"
+          grep -q "dompurify" "$tmp/viz.html" || {
+            echo "DOMPurify is not loaded in the generated page" >&2
+            exit 1
+          }
+          grep -qE 'DOMPurify\.sanitize\(marked\.parse\(' "$tmp/viz.html" || {
+            echo "marked.parse(...) output is not wrapped in DOMPurify.sanitize(...)" >&2
+            exit 1
+          }
+          echo "ok: concept body rendering is sanitized"
+
       - name: Self-test — scale guardrails (auto linear layout, --max-nodes cap)
         run: |
           # Force (cose) layout freezes the page on large bundles (~32 s at 2k
@@ -121,3 +146,20 @@ jobs:
             exit 1
           fi
           echo "ok: scale guardrails behave"
+
+  validate-windows:
+    # Real regression coverage for the cp1252 class of bug: a genuine Windows
+    # console (not a simulated codepage on Linux) defaults to cp1252, which is
+    # what originally crashed the ✓/✗/— glyphs.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Unit tests — okf_validate internals
+        run: uv run tests/test_okf_validate.py
+
+      - name: Validate example bundle (strict, native cp1252 console)
+        run: uv run skills/validate/scripts/okf_validate.py examples/sample-bundle --strict

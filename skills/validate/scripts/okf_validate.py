@@ -67,9 +67,24 @@ def split_frontmatter(text: str) -> tuple[str | None, str]:
     return None, text  # unterminated block → treated as absent
 
 
+def _read_text(path: Path, rel: str, report: Report) -> str | None:
+    """Read a concept/index/log file, reporting (not raising) on a bad file.
+
+    A binary or non-UTF-8 `.md` file must fail as a per-file error, not crash
+    the whole validation run.
+    """
+    try:
+        return path.read_text(encoding="utf-8").lstrip("﻿")
+    except (UnicodeDecodeError, OSError) as exc:
+        report.err(rel, f"cannot read file: {exc}")
+        return None
+
+
 def check_concept(path: Path, rel: str, report: Report) -> None:
     report.concepts += 1
-    text = path.read_text(encoding="utf-8").lstrip("﻿")
+    text = _read_text(path, rel, report)
+    if text is None:
+        return
     raw, _ = split_frontmatter(text)
     if raw is None:
         report.err(rel, "§9.1 no parseable YAML frontmatter block")
@@ -92,7 +107,9 @@ def check_concept(path: Path, rel: str, report: Report) -> None:
 
 def check_index(path: Path, rel: str, is_root: bool, report: Report) -> None:
     report.indexes += 1
-    text = path.read_text(encoding="utf-8").lstrip("﻿")
+    text = _read_text(path, rel, report)
+    if text is None:
+        return
     raw, _ = split_frontmatter(text)
     if raw is not None:
         if not is_root:
@@ -110,7 +127,9 @@ def check_index(path: Path, rel: str, is_root: bool, report: Report) -> None:
 
 def check_log(path: Path, rel: str, report: Report) -> None:
     report.logs += 1
-    text = path.read_text(encoding="utf-8").lstrip("﻿")
+    text = _read_text(path, rel, report)
+    if text is None:
+        return
     raw, _ = split_frontmatter(text)
     if raw is not None:
         report.warn(rel, "§7 log.md should contain no frontmatter")
@@ -122,7 +141,13 @@ def check_log(path: Path, rel: str, report: Report) -> None:
 
 
 def collect_link_targets(path: Path) -> list[str]:
-    text = path.read_text(encoding="utf-8")
+    # Unreadable files are already reported as a per-file error by
+    # check_concept/check_index/check_log; fail soft here to avoid a duplicate
+    # error and a crash on the second read pass.
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError):
+        return []
     targets: list[str] = []
     in_fence = False
     for line in text.splitlines():

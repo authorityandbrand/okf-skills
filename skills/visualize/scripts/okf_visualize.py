@@ -89,7 +89,13 @@ def build(bundle: Path):
     ids = {p.relative_to(bundle).with_suffix("").as_posix() for p in files}
     for p in files:
         cid = p.relative_to(bundle).with_suffix("").as_posix()
-        meta, body = split_frontmatter(p.read_text(encoding="utf-8").lstrip("﻿"))
+        try:
+            raw = p.read_text(encoding="utf-8").lstrip("﻿")
+        except (UnicodeDecodeError, OSError) as exc:
+            print(f"warning: skipping {p.relative_to(bundle)}: cannot read file: {exc}", file=sys.stderr)
+            ids.discard(cid)
+            continue
+        meta, body = split_frontmatter(raw)
         body = body.strip()
         nodes.append({
             "id": cid,
@@ -126,6 +132,7 @@ HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 __OGIMAGE__
 <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.12/dist/purify.min.js" integrity="sha384-piCcpDdJ7qVeK4Tv8Z6Hpcr3ZBIgP16TxQTPVfsLFdZ5uDgwc3Y8Ho7oUnqf12qu" crossorigin="anonymous"></script>
 <style>
  :root{--bg:#0e0f13;--panel:#16181f;--line:#262a35;--fg:#e6e8ee;--mut:#9aa3b2;--accent:#8ab4ff}
  *{box-sizing:border-box} html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
@@ -198,7 +205,7 @@ function show(id){const n=byId[id];if(!n)return;const c=color[n.type];
  <h2>${esc(n.title)}</h2><div class="desc">${esc(n.description)||'<span class=empty>no description</span>'}</div>
  <div class="tags">${(n.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
  ${relList('Links to',outL[id])}${relList('Cited by',inL[id])}
- <div class="body">${n.body?marked.parse(n.body):'<span class=empty>empty body</span>'}</div>`;
+ <div class="body">${n.body?DOMPurify.sanitize(marked.parse(n.body)):'<span class=empty>empty body</span>'}</div>`;
  side.querySelectorAll('[data-go]').forEach(a=>a.onclick=()=>select(a.getAttribute('data-go')));}
 function select(id){const ele=cy.getElementById(id);if(!ele.length)return;show(id);
  cy.elements().removeClass('hl').addClass('dim');const nb=ele.closedNeighborhood();nb.removeClass('dim');ele.addClass('hl');

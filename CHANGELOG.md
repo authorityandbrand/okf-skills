@@ -4,6 +4,37 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [Unreleased]
+
+### Security
+- `visualize`: fixed a stored XSS — a concept body's rendered markdown was
+  assigned to `innerHTML` via `marked.parse()` with no sanitization, so a
+  concept file containing e.g. `<img src=x onerror=alert(1)>` executed when
+  the concept was selected. The output of `marked.parse()` is now passed
+  through [DOMPurify](https://github.com/cure53/DOMPurify) (loaded from the
+  same jsdelivr CDN as Cytoscape/marked, pinned to an exact version with an
+  SRI `integrity` hash) before assignment.
+
+### Fixed
+- `validate`/`visualize`: a binary or non-UTF-8 `.md` file no longer crashes
+  the whole run — `validate` reports it as a per-file error, `visualize` skips
+  it with a stderr warning and drops it from the graph.
+
+### Added
+- CI: a `windows-latest` job runs the validator against
+  `examples/sample-bundle` without `PYTHONUTF8` set — real regression coverage
+  for the cp1252 class of bug (the existing cp1252 step only simulates it on
+  Linux).
+- CI: a self-test asserting the visualizer's DOMPurify hook is wired in and
+  wraps `marked.parse(...)`.
+
+### Docs
+- `marketplace.json`: the plugin description now mentions `visualize`
+  alongside author/maintain/validate.
+- `README.md`: a compact Install block (plugin one-liner + skills.sh
+  one-liner) now sits right under the badges/demo GIF; the full Install
+  section is unchanged.
+
 ## [0.3.5] — 2026-07-17
 
 ### Fixed

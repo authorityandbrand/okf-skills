@@ -17,6 +17,11 @@ knowledge bundles — markdown your team and your agents both read.**
 
 *Click any node → rendered markdown, typed metadata, and "Links to / Cited by" backlinks. No backend, nothing leaves the page.*
 
+```shell
+/plugin install okf@scaccogatto
+npx skills add scaccogatto/okf-skills
+```
+
 </div>
 
 ---
