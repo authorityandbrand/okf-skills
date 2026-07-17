@@ -71,6 +71,7 @@ and an OKF bundle for *what the team knows* — shared, structured, and shippabl
 | `/okf:okf` skill | Produce / maintain / consume bundles, applying the spec and templates. Auto-triggers when a repo has an OKF bundle. |
 | `/okf:validate` skill | Deterministic §9 conformance check (not an eyeball pass). |
 | `/okf:visualize` skill | Render a bundle to a self-contained interactive HTML graph (`viz.html`). |
+| `skills/okf/scripts/okf_init.py` | Scaffold a conformant starter bundle (`index.md`, `log.md`, a starter concept) in one shot. |
 | `skills/validate/scripts/okf_validate.py` | Standalone, zero-config validator (`uv run`, PyYAML via PEP 723). |
 | `skills/visualize/scripts/okf_visualize.py` | Standalone bundle→`viz.html` renderer (Cytoscape + marked via CDN). |
 | `skills/okf/reference/SPEC.md` | The OKF v0.1 spec, vendored verbatim — the source of truth. |

@@ -43,6 +43,16 @@ jobs:
           fi
           echo "ok: non-conformant bundle correctly rejected"
 
+      - name: Self-test — okf_init.py scaffold passes strict validation clean
+        run: |
+          # The scaffold is meant to be exemplary: every recommended frontmatter
+          # field present, a valid ISO log heading, no cross-link rot. Zero
+          # warnings is the bar, not just zero errors.
+          tmp="$(mktemp -d)"
+          uv run skills/okf/scripts/okf_init.py "$tmp/bundle" --title "CI Self-Test"
+          uv run skills/validate/scripts/okf_validate.py "$tmp/bundle" --strict
+          echo "ok: okf_init.py scaffold is strict-clean"
+
       - name: Self-test — script-breaking sequences in concept bodies are neutralized
         run: |
           # A concept body may legitimately contain </script> (ends the inline

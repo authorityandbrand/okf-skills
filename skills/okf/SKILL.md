@@ -57,6 +57,18 @@ location. Commit it alongside the code it describes — knowledge as code.
 ## Modes
 
 ### produce — create or extend a bundle
+
+**Starting a brand-new bundle?** Use the init fast-path instead of hand-writing
+the first files — it scaffolds a conformant `index.md`, `log.md`, and a
+`getting-started.md` concept with full recommended frontmatter in one shot:
+
+```bash
+uv run "${CLAUDE_SKILL_DIR}/scripts/okf_init.py" <target-dir> [--title "..."]
+```
+
+It refuses to touch a directory that already has `.md` files unless `--force`
+is given. Then extend it:
+
 1. Read [reference/SPEC.md](reference/SPEC.md).
 2. Pick the source(s): **code** (derive concepts from source, READMEs,
    docstrings, config), **docs/wiki** (distill pages into concepts, link the

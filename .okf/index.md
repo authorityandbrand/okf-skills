@@ -16,6 +16,7 @@ described as an OKF bundle — the toolkit eating its own dog food. Render it wi
 
 # Components
 
+* [okf_init.py](components/okf_init.md) — the starter bundle scaffolder.
 * [okf_validate.py](components/validator.md) — the conformance checker.
 * [okf_visualize.py](components/visualizer.md) — the graph renderer.
 
