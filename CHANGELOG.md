@@ -7,6 +7,10 @@ OKF spec version it supports.
 ## [Unreleased]
 
 ### Fixed
+- `validate`/`visualize`: no longer crash with `UnicodeEncodeError` on default
+  Windows consoles (cp1252) — stdout/stderr are reconfigured to UTF-8 so the
+  ✓/✗/— glyphs always print. Thanks @crackcode09 (#3). A cp1252 regression
+  step now runs in CI.
 - `visualize`: large bundles no longer freeze the browser. The default force
   (cose) layout — measured at ~32 s of blocked main thread for a ~2k-concept
   bundle, and extrapolating to hours at 20k+ — now applies only up to 1,000

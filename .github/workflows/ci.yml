@@ -23,6 +23,13 @@ jobs:
       - name: Validate this repo's own .okf bundle (strict, dogfooding)
         run: uv run skills/validate/scripts/okf_validate.py .okf --strict
 
+      - name: Self-test — success output survives a cp1252 console (Windows regression)
+        run: |
+          # The ✓/✗/— glyphs crashed both scripts on default Windows consoles
+          # (cp1252) until the _force_utf8_stdio() fix; simulate that codepage.
+          PYTHONIOENCODING=cp1252 uv run skills/validate/scripts/okf_validate.py examples/sample-bundle
+          echo "ok: validate output survives cp1252"
+
       - name: Self-test — a non-conformant bundle must fail
         run: |
           tmp="$(mktemp -d)"
