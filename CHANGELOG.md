@@ -4,6 +4,58 @@ All notable changes to this plugin are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin tracks the
 OKF spec version it supports.
 
+## [0.5.0] — 2026-07-27
+
+### Changed
+- **The toolkit now targets OKF v0.2.** `skills/okf/reference/SPEC.md` is
+  re-vendored verbatim from upstream `3fcbb9f`, and the `okf`, `validate`, and
+  `visualize` skills apply its rules. Conformance is unchanged in substance
+  (parseable frontmatter with a non-empty `type`) but has moved from §9 to §11;
+  validator messages cite v0.2 section numbers throughout.
+- `okf_init.py` scaffolds v0.2 frontmatter — `okf_version: "0.2"` in the root
+  index, `status` and `generated: {by, at}` (actor `process:okf_init`) on the
+  starter concept.
+- `examples/sample-bundle` and this repo's own `.okf` bundle are migrated to
+  v0.2; the two GitHub Pages demos are regenerated from them. The sample bundle's
+  checkout conversion metric now records the orders database in `sources`, so the
+  live demo shows a derivation edge.
+
+### Added
+- `validate`: checks for the new families, all soft — `generated.by` present,
+  every `verified` entry has an actor (a bare mapping counts as a one-element
+  list, §5.2), `status` is one of draft/stable/deprecated, `stale_after` and
+  `sources[].last_modified` are absolute `YYYY-MM-DD` dates, every `sources`
+  entry has a `resource`, every `[^label]` footnote names a `sources[].id`, and
+  an `Attested Computation` declares a `runtime`.
+- `visualize`: the detail panel renders `status`, `generated`, `verified`,
+  `stale_after`, and a Sources list with each source's credibility signals; a
+  `sources` entry pointing at another concept in the bundle also becomes a graph
+  edge.
+- `validate --migrate`: rewrites a v0.1 bundle to v0.2 in place — `timestamp` to
+  `generated: { by: process:okf-migrate, at }`, a `# Citations` list up into
+  `sources`, `okf_version` to 0.2. Textual, so comments, key order and quoting
+  survive a migration; idempotent, so a half-migrated bundle converges. It does
+  not invent `generated.by` for pre-v0.2 content (the `process:` actor leaves the
+  concept correctly *unverified* under §5.3) and cannot recover per-claim
+  `[^id]` attribution, which v0.1 never encoded — the command says so.
+- `validate --max-warnings N`: the gate between a default that fails on nothing
+  and a `--strict` that demands zero, so a bundle with known warnings can still
+  be gated in CI. `--strict` is the `N=0` case.
+- `make docs` pins the exact invocation behind the two GitHub Pages demos, and CI
+  fails on a stale `docs/`. They had silently drifted: both live pages were
+  serving a build from before the DOMPurify sanitize fix.
+
+### Compatibility
+- **v0.1 bundles still validate and render.** The two superseded constructs are
+  read, not rejected: a legacy `timestamp` is used as `generated.at`, and a body
+  `# Citations` list is recognized. Both are reported as warnings naming their
+  v0.2 replacement (§13.1).
+- **`--strict` fails an unmigrated v0.1 bundle.** That is the migration nudge and
+  it is deliberate — `templates/CLAUDE-okf.md` tells every user to run `--strict`
+  before committing, so `--migrate` ships in the same release to make it a door
+  rather than a wall. Note that §11 conformance itself never mentioned
+  `timestamp` or `# Citations`: a v0.1 bundle is conformant under v0.2 either way.
+
 ## [0.4.0] — 2026-07-17
 
 ### Added

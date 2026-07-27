@@ -3,7 +3,16 @@ type: Metric
 title: Checkout conversion
 description: Share of started checkouts that end in a paid order.
 tags: [kpi, growth, payments]
-timestamp: "2026-06-18T12:00:00Z"
+status: stable
+generated: { by: human:dana, at: "2026-06-18T12:00:00Z" }
+verified: { by: human:sam, at: "2026-06-19T09:00:00Z" }
+stale_after: 2026-12-31
+sources:
+  - id: orders-db
+    resource: /datasets/orders-db.md
+    title: Orders database
+    author: team:checkout
+    last_modified: 2026-06-17
 ---
 
 # Definition
@@ -13,7 +22,9 @@ checkout_conversion = orders[status = paid] / checkouts_started
 ```
 
 Measured per hour from the [Orders API](/services/orders-api.md) checkout funnel;
-the denominator is `checkout.started` events, the numerator is `order.paid`.
+the denominator is `checkout.started` events, the numerator is `order.paid`. Both
+are counted off the [orders database](/datasets/orders-db.md) — recorded in
+`sources`, so the derivation shows up as an edge in the graph.
 
 # Targets
 
