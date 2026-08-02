@@ -1,5 +1,13 @@
 # Update Log
 
+## 2026-08-02
+* **Decision**: Recorded [dormant hooks — opt-in enforced
+  upkeep](/decisions/dormant-hooks.md) and shipped the plugin's first hook,
+  [`okf-stop-check.sh`](/components/stop-hook.md) on `Stop` — a no-op unless a
+  bundle sets `upkeep: enforced` in `.okf/index.md` and the user hasn't set
+  `OKF_HOOK=off`. This supersedes [ship no hooks](/decisions/no-hooks.md),
+  now `deprecated`.
+
 ## 2026-07-29
 * **Reframe**: The benchmark docs now lead with what the experiment measured —
   answer quality, +8 points with a consistent why/where pattern — and scope the
