@@ -1,5 +1,13 @@
 # Update Log
 
+## 2026-08-15
+* **Distribution**: Published the composite action to the GitHub Marketplace.
+  The listing form rejected the shipped metadata — the name `Validate OKF
+  bundle` was not globally unique and the description exceeded 125 characters —
+  so `action.yml` now reads `OKF Bundle Validator` with a trimmed description
+  (v0.7.2). Consumers reference `scaccogatto/okf-skills@<tag>` regardless, so
+  the rename breaks nothing.
+
 ## 2026-08-03
 * **Enforcement**: Made the version bump mandatory. A `version-bump` CI job fails
   any PR that changes the shipped surface (`.claude-plugin/`, `skills/`, `hooks/`,
